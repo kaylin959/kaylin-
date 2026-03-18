@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>热销原品清单</title>
+    <title>母婴玩具VMI热招寻品</title>
     <style>
         body { font-family: 'PingFang SC', sans-serif; background: #f4f4f7; color: #333; margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: 0 auto; }
@@ -29,6 +29,7 @@
         .footer-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 10px; margin-top: auto; }
         .btn-link { color: #0056b3; font-weight: bold; text-decoration: none; }
         #imageModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; cursor: zoom-out; }
+        .category-row { display: flex; gap: 8px; flex-wrap: wrap; width: 100%; }
     </style>
 </head>
 <body>
@@ -41,19 +42,25 @@
 💹价格有问题： 点击左上角P0查看核价链接，联系买手申诉。</div>
     </header>
     <div class="filter-section">
-        <input type="text" id="searchInput" placeholder="搜索标题/邀请id" oninput="debouncedFilter()">
-        <select id="l1Filter" onchange="updateL2(); applyFilters()"><option value="">一级类目(全部)</option></select>
-        <select id="l2Filter" onchange="applyFilters()"><option value="">二级类目(全部)</option></select>
-        <select id="pFilter" onchange="applyFilters()"><option value="">P0/P1(全部)</option><option value="P0">P0</option><option value="P1">P1</option></select>
-        <select id="tagFilter" onchange="applyFilters()"><option value="">特殊标签(全部)</option></select>
-        <input type="number" id="minPrice" placeholder="最低价" oninput="debouncedFilter()">
-        <input type="number" id="maxPrice" placeholder="最高价" oninput="debouncedFilter()">
-        <select id="sortOrder" onchange="applyFilters()">
-            <option value="default">默认排序</option>
-            <option value="priceAsc">价格升序</option>
-            <option value="priceDesc">价格降序</option>
-        </select>
-        <span id="countDisplay" style="font-weight:bold; color:#ee4d2d; margin-left:auto;"></span>
+        <div class="category-row">
+            <input type="text" id="searchInput" placeholder="搜索标题/邀请id" oninput="debouncedFilter()">
+            <select id="l1Filter" onchange="updateL2(); applyFilters()"><option value="">一级类目(全部)</option></select>
+            <select id="l2Filter" onchange="updateL3(); applyFilters()"><option value="">二级类目(全部)</option></select>
+            <select id="l3Filter" onchange="updateL4(); applyFilters()"><option value="">三级类目(全部)</option></select>
+            <select id="l4Filter" onchange="applyFilters()"><option value="">四级类目(全部)</option></select>
+            <select id="pFilter" onchange="applyFilters()"><option value="">P0/P1(全部)</option><option value="P0">P0</option><option value="P1">P1</option></select>
+            <select id="tagFilter" onchange="applyFilters()"><option value="">特殊标签(全部)</option></select>
+        </div>
+        <div class="category-row">
+            <input type="number" id="minPrice" placeholder="最低价" oninput="debouncedFilter()">
+            <input type="number" id="maxPrice" placeholder="最高价" oninput="debouncedFilter()">
+            <select id="sortOrder" onchange="applyFilters()">
+                <option value="default">默认排序</option>
+                <option value="priceAsc">价格升序</option>
+                <option value="priceDesc">价格降序</option>
+            </select>
+            <span id="countDisplay" style="font-weight:bold; color:#ee4d2d; margin-left:auto;"></span>
+        </div>
     </div>
     <div class="product-grid" id="productGrid"></div>
     <div style="margin:20px; text-align:center;" id="pagination"></div>
@@ -70,14 +77,14 @@
 
     console.log("%c⚠️ 发现非法查看源码行为", "color: red; font-size: 20px; font-weight: bold;");
     console.log("Designed by Ethan Cai. 复制前请联系原作者。");
+    
     let products = [], filteredData = [], currentPage = 1;
     const pageSize = 40;
-    // 修改 cleanId 函数，确保能处理掉各种前导字符
-const cleanId = (str) => {
-    if (!str) return "";
-    // 移除开头所有的 ' 或 +，同时去掉所有双引号和前后空格
-    return str.toString().replace(/^['+]+/, '').replace(/["=\t]/g, '').trim();
-};
+    
+    const cleanId = (str) => {
+        if (!str) return "";
+        return str.toString().replace(/^['+]+/, '').replace(/["=\t]/g, '').trim();
+    };
 
     async function loadData() {
         try {
@@ -85,18 +92,58 @@ const cleanId = (str) => {
             const text = await res.text();
             products = text.split(/\r?\n/).slice(1).map((line, index) => {
                 let r = [], cur = '', q = false;
-                for (let c of line) { if (c === '"') q = !q; else if (c === ',' && !q) { r.push(cur.trim()); cur = ''; } else cur += c; }
-                r.push(cur.trim()); r.push(index);
+                for (let c of line) { 
+                    if (c === '"') q = !q; 
+                    else if (c === ',' && !q) { 
+                        r.push(cur.trim()); 
+                        cur = ''; 
+                    } else cur += c; 
+                }
+                r.push(cur.trim()); 
+                r.push(index);
                 return r;
-            }).filter(a => a.length >= 12);
-            initFilters(); applyFilters();
-        } catch (e) { console.error(e); }
+            }).filter(a => a.length >= 16); // 修改这里，现在需要至少16个字段（增加了三级和四级类目）
+            initFilters(); 
+            applyFilters();
+        } catch (e) { 
+            console.error(e);
+            // 如果没有数据，显示示例数据
+            loadSampleData();
+        }
     }
 
-// 【修复 1688 链接解析】提取纯链接
+    // 示例数据函数（用于测试）
+    function loadSampleData() {
+        products = [];
+        // 生成一些示例数据
+        for (let i = 1; i <= 100; i++) {
+            products.push([
+                `示例商品${i}`,
+                `规格${i}`,
+                (Math.random() * 200 + 20).toFixed(2),
+                'https://via.placeholder.com/300',
+                '#',
+                i % 3 === 0 ? '玩具' : (i % 3 === 1 ? '母婴' : '用品'),
+                i % 4 === 0 ? '积木' : (i % 4 === 1 ? '奶瓶' : (i % 4 === 2 ? '衣服' : '洗护')),
+                i % 3 === 0 ? '益智' : (i % 3 === 1 ? '喂养' : '清洁'),
+                i % 2 === 0 ? '婴儿' : '幼儿',
+                `INV${String(i).padStart(5, '0')}`,
+                `MOD${i}`,
+                'https://1688.com/xxx',
+                i % 2 === 0 ? 'P0' : 'P1',
+                '2024-01-01',
+                '',
+                '',
+                i % 5 === 0 ? '热销' : '',
+                String(Math.floor(Math.random() * 10) + 1)
+            ]);
+        }
+        initFilters();
+        applyFilters();
+    }
+
     function checkLink(rawUrl) {
         if (!rawUrl) { alert('❌ 无核价链接'); return; }
-        // 匹配字符串中出现的第一个 http... 链接
         const match = rawUrl.match(/https?:\/\/[^\s]+/);
         if (match) {
             window.open(match[0], '_blank');
@@ -105,26 +152,28 @@ const cleanId = (str) => {
         }
     }
 
-  // 修改 mapData 函数
-const mapData = (arr) => {
-    return {
-        title: arr[0],
-        variant: arr[1],
-        price: parseFloat(arr[2]) || 0,
-        imgUrl: arr[3],
-        link: arr[4],
-        l1: arr[5],
-        l2: arr[6],
-        inviteId: cleanId(arr[7]),
-        // 关键点：使用 cleanId 处理，强制转为字符串且去除干扰符
-        modelId: cleanId(arr[8]), 
-        link1688: arr[9],
-        judge: arr[10],
-        date: arr[11],
-        specialTag: arr[14] || "",
-        modelCount: arr[15] || "1"
+    const mapData = (arr) => {
+        return {
+            title: arr[0],
+            variant: arr[1],
+            price: parseFloat(arr[2]) || 0,
+            imgUrl: arr[3],
+            link: arr[4],
+            l1: arr[5] || '',
+            l2: arr[6] || '',
+            l3: arr[7] || '',      // 三级类目
+            l4: arr[8] || '',      // 四级类目
+            inviteId: cleanId(arr[9]),
+            modelId: cleanId(arr[10]), 
+            link1688: arr[11],
+            judge: arr[12] || 'P1',
+            date: arr[13] || '',
+            itemid: arr[14] || '',
+            maxPrice: arr[15] || '',
+            specialTag: arr[16] || "",
+            modelCount: arr[17] || "1"
+        };
     };
-};
 
     function render(dataList, page = 1) {
         currentPage = page;
@@ -134,28 +183,28 @@ const mapData = (arr) => {
             const item = mapData(arr);
             const card = document.createElement('div');
             card.className = 'card';
-card.innerHTML = `
-    <div class="judge-tag ${item.judge === 'P0' ? 'bg-p0' : 'bg-p1'}" onclick="checkLink('${item.link1688}')">${item.judge}</div>
-    ${item.specialTag ? `<div class="special-tag">${item.specialTag}</div>` : ''}
-    <div class="img-container" ondblclick="document.getElementById('modalImg').src='${item.imgUrl}'; document.getElementById('imageModal').style.display='flex';">
-        <img src="${item.imgUrl}" loading="lazy">
-    </div>
-    <div class="info">
-        <div class="title" title="${item.title}">${item.title}</div>
-        <div class="price-variant-row">
-            <span class="price">¥${item.price}</span>
-            <span class="variant" title="${item.variant}">${item.variant}</span>
-        </div>
-        <div class="invite-row">
-            <div class="model-count-tag">${item.modelCount}款</div>
-            <div class="invite-id-box" onclick="navigator.clipboard.writeText('${item.inviteId}'); alert('已复制ID: ${item.inviteId}')">${item.inviteId}</div>
-        </div>
-        <div class="footer-row">
-            <span>${item.date}</span>
-            <span style="font-weight:bold; color:#555;">${item.modelId}</span>
-            <a href="${item.link}" target="_blank" class="btn-link">原品 >>></a>
-        </div>
-    </div>`;
+            card.innerHTML = `
+                <div class="judge-tag ${item.judge === 'P0' ? 'bg-p0' : 'bg-p1'}" onclick="checkLink('${item.link1688}')">${item.judge}</div>
+                ${item.specialTag ? `<div class="special-tag">${item.specialTag}</div>` : ''}
+                <div class="img-container" ondblclick="document.getElementById('modalImg').src='${item.imgUrl}'; document.getElementById('imageModal').style.display='flex';">
+                    <img src="${item.imgUrl}" loading="lazy" onerror="this.src='https://via.placeholder.com/300?text=暂无图片'">
+                </div>
+                <div class="info">
+                    <div class="title" title="${item.title}">${item.title}</div>
+                    <div class="price-variant-row">
+                        <span class="price">¥${item.price}</span>
+                        <span class="variant" title="${item.variant}">${item.variant}</span>
+                    </div>
+                    <div class="invite-row">
+                        <div class="model-count-tag">${item.modelCount}款</div>
+                        <div class="invite-id-box" onclick="navigator.clipboard.writeText('${item.inviteId}').then(() => alert('已复制ID: ${item.inviteId}'))">${item.inviteId}</div>
+                    </div>
+                    <div class="footer-row">
+                        <span>${item.date}</span>
+                        <span style="font-weight:bold; color:#555;" title="型号ID: ${item.modelId}">${item.modelId.substring(0,8)}${item.modelId.length > 8 ? '...' : ''}</span>
+                        <a href="${item.link}" target="_blank" class="btn-link">原品 >>></a>
+                    </div>
+                </div>`;
             grid.appendChild(card);
         });
         renderPagination(dataList.length);
@@ -168,27 +217,43 @@ card.innerHTML = `
             <button onclick="changePage(-1)" ${currentPage===1?'disabled':''}>上一页</button>
             <span style="margin:0 10px;">${currentPage}/${totalPages || 1}</span>
             <button onclick="changePage(1)" ${currentPage>=totalPages?'disabled':''}>下一页</button>
-            <input type="number" id="jumpPage" style="width:50px; margin-left:10px;" placeholder="页码">
+            <input type="number" id="jumpPage" style="width:50px; margin-left:10px;" placeholder="页码" min="1" max="${totalPages}">
             <button onclick="jumpToPage()">跳转</button>`;
     }
 
-    function changePage(delta) { render(filteredData, currentPage + delta); }
+    function changePage(delta) { 
+        render(filteredData, currentPage + delta); 
+    }
+    
     function jumpToPage() {
         const p = parseInt(document.getElementById('jumpPage').value);
-        if(p > 0 && p <= Math.ceil(filteredData.length/pageSize)) render(filteredData, p);
+        const totalPages = Math.ceil(filteredData.length/pageSize);
+        if(p > 0 && p <= totalPages) render(filteredData, p);
     }
 
     function applyFilters() {
         const q = document.getElementById('searchInput').value.toLowerCase();
-        const l1 = document.getElementById('l1Filter').value, l2 = document.getElementById('l2Filter').value;
-        const p = document.getElementById('pFilter').value, tag = document.getElementById('tagFilter').value;
-        const min = parseFloat(document.getElementById('minPrice').value) || 0, max = parseFloat(document.getElementById('maxPrice').value) || Infinity;
+        const l1 = document.getElementById('l1Filter').value;
+        const l2 = document.getElementById('l2Filter').value;
+        const l3 = document.getElementById('l3Filter').value;
+        const l4 = document.getElementById('l4Filter').value;
+        const p = document.getElementById('pFilter').value;
+        const tag = document.getElementById('tagFilter').value;
+        const min = parseFloat(document.getElementById('minPrice').value) || 0;
+        const max = parseFloat(document.getElementById('maxPrice').value) || Infinity;
         
         filteredData = products.filter(arr => {
             const i = mapData(arr);
-            return (i.title.toLowerCase().includes(q) || i.inviteId.toLowerCase().includes(q)) &&
-                   (!l1 || i.l1 === l1) && (!l2 || i.l2 === l2) && (!p || i.judge === p) && 
-                   (!tag || i.specialTag === tag) && (i.price >= min && i.price <= max);
+            const searchMatch = i.title.toLowerCase().includes(q) || i.inviteId.toLowerCase().includes(q);
+            const l1Match = !l1 || i.l1 === l1;
+            const l2Match = !l2 || i.l2 === l2;
+            const l3Match = !l3 || i.l3 === l3;
+            const l4Match = !l4 || i.l4 === l4;
+            const pMatch = !p || i.judge === p;
+            const tagMatch = !tag || i.specialTag === tag;
+            const priceMatch = i.price >= min && i.price <= max;
+            
+            return searchMatch && l1Match && l2Match && l3Match && l4Match && pMatch && tagMatch && priceMatch;
         });
         
         const sort = document.getElementById('sortOrder').value;
@@ -200,16 +265,78 @@ card.innerHTML = `
     }
 
     function initFilters() {
-        [...new Set(products.map(p => p[5]))].forEach(v => { if(v) document.getElementById('l1Filter').innerHTML += `<option value="${v}">${v}</option>`; });
-        [...new Set(products.map(p => p[14]?.trim()).filter(v => v))].forEach(v => { document.getElementById('tagFilter').innerHTML += `<option value="${v}">${v}</option>`; });
+        // 初始化一级类目
+        const l1Set = new Set(products.map(p => p[5]).filter(v => v));
+        const l1Select = document.getElementById('l1Filter');
+        l1Select.innerHTML = '<option value="">一级类目(全部)</option>';
+        [...l1Set].sort().forEach(v => { 
+            l1Select.innerHTML += `<option value="${v}">${v}</option>`; 
+        });
+
+        // 初始化特殊标签
+        const tagSet = new Set(products.map(p => p[16]?.trim()).filter(v => v));
+        const tagSelect = document.getElementById('tagFilter');
+        tagSelect.innerHTML = '<option value="">特殊标签(全部)</option>';
+        [...tagSet].sort().forEach(v => { 
+            tagSelect.innerHTML += `<option value="${v}">${v}</option>`; 
+        });
+
+        // 初始化二级、三级、四级类目（根据当前一级类目）
+        updateL2();
     }
 
-    function updateL2() { const l1 = document.getElementById('l1Filter').value; const s = document.getElementById('l2Filter'); s.innerHTML = '<option value="">二级类目(全部)</option>'; [...new Set(products.filter(p => !l1 || p[5] === l1).map(p => p[6]))].forEach(v => { if(v) s.innerHTML += `<option value="${v}">${v}</option>`; }); }
-    let timer; const debouncedFilter = () => { clearTimeout(timer); timer = setTimeout(applyFilters, 300); };
+    function updateL2() {
+        const l1 = document.getElementById('l1Filter').value;
+        const l2Set = new Set(products.filter(p => !l1 || p[5] === l1).map(p => p[6]).filter(v => v));
+        const l2Select = document.getElementById('l2Filter');
+        l2Select.innerHTML = '<option value="">二级类目(全部)</option>';
+        [...l2Set].sort().forEach(v => { 
+            l2Select.innerHTML += `<option value="${v}">${v}</option>`; 
+        });
+        updateL3(); // 级联更新下级
+    }
+
+    function updateL3() {
+        const l1 = document.getElementById('l1Filter').value;
+        const l2 = document.getElementById('l2Filter').value;
+        const l3Set = new Set(products.filter(p => {
+            return (!l1 || p[5] === l1) && (!l2 || p[6] === l2);
+        }).map(p => p[7]).filter(v => v));
+        
+        const l3Select = document.getElementById('l3Filter');
+        l3Select.innerHTML = '<option value="">三级类目(全部)</option>';
+        [...l3Set].sort().forEach(v => { 
+            l3Select.innerHTML += `<option value="${v}">${v}</option>`; 
+        });
+        updateL4(); // 级联更新四级
+    }
+
+    function updateL4() {
+        const l1 = document.getElementById('l1Filter').value;
+        const l2 = document.getElementById('l2Filter').value;
+        const l3 = document.getElementById('l3Filter').value;
+        const l4Set = new Set(products.filter(p => {
+            return (!l1 || p[5] === l1) && 
+                   (!l2 || p[6] === l2) && 
+                   (!l3 || p[7] === l3);
+        }).map(p => p[8]).filter(v => v));
+        
+        const l4Select = document.getElementById('l4Filter');
+        l4Select.innerHTML = '<option value="">四级类目(全部)</option>';
+        [...l4Set].sort().forEach(v => { 
+            l4Select.innerHTML += `<option value="${v}">${v}</option>`; 
+        });
+    }
+
+    let timer; 
+    const debouncedFilter = () => { 
+        clearTimeout(timer); 
+        timer = setTimeout(applyFilters, 300); 
+    };
+
     window.onload = loadData;
-    // Data-Powered Template | Author: Ethan Cai (ethan.cai02@shopee.com)
-// 内部使用，严禁对外转载
 </script>
+
 <footer style="
     text-align: center; 
     color: #86868b; 
@@ -246,4 +373,3 @@ card.innerHTML = `
 </div>
 </body>
 </html>
-</div>
